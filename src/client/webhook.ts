@@ -22,8 +22,6 @@ export class Webhook {
     public async send(message: string | WebhookMessage): Promise<Response> {
         let rawMessage: RawBaseMessage = {};
 
-        console.log(this.url);
-
         if(!this.url){
             throw new Error("Webhook url not set");
         }
