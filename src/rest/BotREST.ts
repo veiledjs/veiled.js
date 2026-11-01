@@ -42,9 +42,27 @@ import type {
     RawTurnCredentials,
     RawVoiceState,
 } from "../types/response/bot";
+import { BotGateway, BotIdentity } from "../structures/BotIdentity";
+import { BotWebhook } from "../structures/BotWebhook";
+import { Invite } from "../structures/Invite";
+import { Lane } from "../structures/Lane";
+import { Member } from "../structures/Member";
+import { Message } from "../structures/Message";
+import {
+    LaneCapabilities,
+    MemberPermissions,
+    ReactionPage,
+    StagedUpload,
+} from "../structures/Misc";
+import { Role } from "../structures/Role";
+import { Room } from "../structures/Room";
+import { ScheduledEvent } from "../structures/ScheduledEvent";
+import { Thread, ThreadMember } from "../structures/Thread";
+import { IceServerResponse, VoiceCredentials, VoiceState } from "../structures/Voice";
 import { normalizeBotToken } from "../util/botToken";
 import { createContainer, isValidContainerPayload } from "../util/container";
 import { isValidUrl } from "../util/isValidUrl";
+import { unwrapList, unwrapRecord } from "../util/structure";
 
 const DEFAULT_TIMEOUT_MS = 15_000;
 
@@ -104,6 +122,30 @@ export class BotREST {
         this.timeoutMs = timeoutMs;
     }
 
+    private async requestEntity<T>(
+        path: string,
+        keys: string[],
+        from: (raw: unknown) => T,
+        options: BotRequestOptions = {},
+    ): Promise<T | null> {
+        const response = await this.request<unknown>(path, options);
+
+        if (response === null) return null;
+
+        const raw = unwrapRecord(response, keys);
+        return Object.keys(raw).length > 0 ? from(raw) : null;
+    }
+
+    private async requestList<T>(
+        path: string,
+        keys: string[],
+        from: (raw: unknown) => T,
+        options: BotRequestOptions = {},
+    ): Promise<T[]> {
+        const response = await this.request<unknown>(path, options);
+        return unwrapList(response, keys).map(from);
+    }
+
     public async request<T = unknown>(
         path: string,
         options: BotRequestOptions = {},
@@ -154,90 +196,84 @@ export class BotREST {
         return responseBody as T;
     }
 
-    public getMe(): Promise<RawBotIdentity | null> {
-        return this.request<RawBotIdentity>("/bots/@me");
+    public getMe(): Promise<BotIdentity | null> {
+        return this.requestEntity("/bots/@me", [], BotIdentity.from);
     }
 
-    public getMyRooms(): Promise<RawBotListResponse<RawRoom, "rooms"> | null> {
-        return this.request<RawBotListResponse<RawRoom, "rooms">>("/bots/@me/rooms");
+    public getMyRooms(): Promise<Room[]> {
+        return this.requestList("/bots/@me/rooms", ["rooms"], Room.from);
     }
 
-    public getBotRooms(): Promise<RawBotListResponse<RawRoom, "rooms"> | null> {
+    public getBotRooms(): Promise<Room[]> {
         return this.getMyRooms();
     }
 
-    public getGateway(): Promise<RawBotGateway | null> {
-        return this.request<RawBotGateway>("/bots/gateway");
+    public getGateway(): Promise<BotGateway | null> {
+        return this.requestEntity("/bots/gateway", ["gateway"], BotGateway.from);
     }
 
     public leaveRoom(roomId: string): Promise<unknown> {
         return this.request(`/bots/@me/rooms/${segment(roomId)}`, { method: "DELETE" });
     }
 
-    public getRoom(roomId: string): Promise<RawRoom | null> {
-        return this.request<RawRoom>(`/rooms/${segment(roomId)}`);
+    public getRoom(roomId: string): Promise<Room | null> {
+        return this.requestEntity(`/rooms/${segment(roomId)}`, ["room"], Room.from);
     }
 
-    public getLanes(roomId: string): Promise<RawBotListResponse<RawLane, "lanes"> | null> {
-        return this.request<RawBotListResponse<RawLane, "lanes">>(
-            `/rooms/${segment(roomId)}/lanes`,
+    public getLanes(roomId: string): Promise<Lane[]> {
+        return this.requestList(`/rooms/${segment(roomId)}/lanes`, ["lanes"], Lane.from);
+    }
+
+    public getLane(laneId: string): Promise<Lane | null> {
+        return this.requestEntity(`/lanes/${segment(laneId)}`, ["lane"], Lane.from);
+    }
+
+    public getLaneCapabilities(laneId: string): Promise<LaneCapabilities | null> {
+        return this.requestEntity(
+            `/lanes/${segment(laneId)}/capabilities`,
+            ["capabilities"],
+            LaneCapabilities.from,
         );
     }
 
-    public getLane(laneId: string): Promise<RawLane | null> {
-        return this.request<RawLane>(`/lanes/${segment(laneId)}`);
-    }
-
-    public getLaneCapabilities(laneId: string): Promise<RawLaneCapabilities | null> {
-        return this.request<RawLaneCapabilities>(`/lanes/${segment(laneId)}/capabilities`);
-    }
-
-    public getMembers(
-        roomId: string,
-        query?: BotQuery,
-    ): Promise<RawBotListResponse<RawMember, "members"> | null> {
-        return this.request<RawBotListResponse<RawMember, "members">>(
+    public getMembers(roomId: string, query?: BotQuery): Promise<Member[]> {
+        return this.requestList(
             withQuery(`/rooms/${segment(roomId)}/members`, query),
+            ["members"],
+            Member.from,
         );
     }
 
-    public getRoomRoles(
-        roomId: string,
-    ): Promise<RawBotListResponse<RawRole, "roles"> | null> {
-        return this.request<RawBotListResponse<RawRole, "roles">>(
-            `/rooms/${segment(roomId)}/roles`,
-        );
+    public getRoomRoles(roomId: string): Promise<Role[]> {
+        return this.requestList(`/rooms/${segment(roomId)}/roles`, ["roles"], Role.from);
     }
 
-    public getRoleMembers(
-        roomId: string,
-        roleId: string,
-    ): Promise<RawBotListResponse<RawMember, "members"> | null> {
-        return this.request<RawBotListResponse<RawMember, "members">>(
+    public getRoleMembers(roomId: string, roleId: string): Promise<Member[]> {
+        return this.requestList(
             `/rooms/${segment(roomId)}/roles/${segment(roleId)}/members`,
+            ["members"],
+            Member.from,
         );
     }
 
-    public getMemberRoles(
-        roomId: string,
-        userId: string,
-    ): Promise<RawBotListResponse<RawRole, "roles"> | null> {
-        return this.request<RawBotListResponse<RawRole, "roles">>(
+    public getMemberRoles(roomId: string, userId: string): Promise<Role[]> {
+        return this.requestList(
             `/rooms/${segment(roomId)}/members/${segment(userId)}/roles`,
+            ["roles"],
+            Role.from,
         );
     }
 
-    public getMemberPermissions(
-        roomId: string,
-        userId: string,
-    ): Promise<RawMemberPermissions | null> {
-        return this.request<RawMemberPermissions>(
+    public getMemberPermissions(roomId: string, userId: string): Promise<MemberPermissions | null> {
+        return this.requestEntity(
             `/rooms/${segment(roomId)}/members/${segment(userId)}/permissions`,
+            ["permissions"],
+            MemberPermissions.from,
         );
     }
 
-    public createRole(roomId: string, payload: RawBotRolePayload): Promise<RawRole | null> {
-        return this.request<RawRole>(`/rooms/${segment(roomId)}/roles`, {
+    public createRole(roomId: string, payload: RawBotRolePayload): Promise<Role | null> {
+        return this.requestEntity(`/rooms/${segment(roomId)}/roles`, ["role"], Role.from, {
             method: "POST",
             body: payload,
         });
@@ -264,8 +300,8 @@ export class BotREST {
         });
     }
 
-    public updateRole(roleId: string, payload: RawBotRolePayload): Promise<RawRole | null> {
-        return this.request<RawRole>(`/roles/${segment(roleId)}`, {
+    public updateRole(roleId: string, payload: RawBotRolePayload): Promise<Role | null> {
+        return this.requestEntity(`/roles/${segment(roleId)}`, ["role"], Role.from, {
             method: "PATCH",
             body: payload,
         });
@@ -317,26 +353,30 @@ export class BotREST {
         });
     }
 
-    public getMessages(laneId: string, query?: BotQuery): Promise<RawMessageList | null> {
-        return this.request<RawMessageList>(
+    public getMessages(laneId: string, query?: BotQuery): Promise<Message[]> {
+        return this.requestList(
             withQuery(`/lanes/${segment(laneId)}/messages`, query),
+            ["messages"],
+            Message.fromUnknown,
         );
     }
 
     public sendMessage(
         laneId: string,
         payload: RawBotMessagePayload | string = {},
-    ): Promise<unknown> {
+    ): Promise<Message | null> {
         const body = typeof payload === "string" ? { content: payload } : payload;
 
         if (body.components !== undefined && !Array.isArray(body.components)) {
             throw new TypeError("components must be an array.");
         }
 
-        return this.request(`/lanes/${segment(laneId)}/messages`, {
-            method: "POST",
-            body,
-        });
+        return this.requestEntity(
+            `/lanes/${segment(laneId)}/messages`,
+            ["message"],
+            Message.fromUnknown,
+            { method: "POST", body },
+        );
     }
 
     public sendTyping(laneId: string): Promise<unknown> {
@@ -349,11 +389,13 @@ export class BotREST {
     public editMessage(
         messageId: string,
         payload: RawBotMessageEditPayload,
-    ): Promise<unknown> {
-        return this.request(`/messages/${segment(messageId)}`, {
-            method: "PATCH",
-            body: payload,
-        });
+    ): Promise<Message | null> {
+        return this.requestEntity(
+            `/messages/${segment(messageId)}`,
+            ["message"],
+            Message.fromUnknown,
+            { method: "PATCH", body: payload },
+        );
     }
 
     public deleteMessage(messageId: string): Promise<unknown> {
@@ -388,14 +430,20 @@ export class BotREST {
         messageId: string,
         emoji: string,
         query: RawBotReactionQuery = {},
-    ): Promise<RawReactionPage | null> {
-        return this.request<RawReactionPage>(
+    ): Promise<ReactionPage | null> {
+        return this.requestEntity(
             withQuery(`/messages/${segment(messageId)}/reactions/${segment(emoji)}`, query),
+            ["reactionsPage", "reactionPage"],
+            ReactionPage.from,
         );
     }
 
-    public getPins(laneId: string): Promise<RawMessageList | null> {
-        return this.request<RawMessageList>(`/lanes/${segment(laneId)}/pins`);
+    public getPins(laneId: string): Promise<Message[]> {
+        return this.requestList(
+            `/lanes/${segment(laneId)}/pins`,
+            ["messages", "pins"],
+            Message.fromUnknown,
+        );
     }
 
     public pinMessage(messageId: string): Promise<unknown> {
@@ -409,42 +457,41 @@ export class BotREST {
         return this.request(`/messages/${segment(messageId)}/pin`, { method: "DELETE" });
     }
 
-    public getLaneThreads(
-        laneId: string,
-        query?: BotQuery,
-    ): Promise<RawBotListResponse<RawThread, "threads"> | null> {
-        return this.request<RawBotListResponse<RawThread, "threads">>(
+    public getLaneThreads(laneId: string, query?: BotQuery): Promise<Thread[]> {
+        return this.requestList(
             withQuery(`/lanes/${segment(laneId)}/threads`, query),
+            ["threads"],
+            Thread.from,
         );
     }
 
-    public getJoinedThreads(
-        roomId: string,
-    ): Promise<RawBotListResponse<RawThread, "threads"> | null> {
-        return this.request<RawBotListResponse<RawThread, "threads">>(
+    public getJoinedThreads(roomId: string): Promise<Thread[]> {
+        return this.requestList(
             `/rooms/${segment(roomId)}/threads/joined`,
+            ["threads"],
+            Thread.from,
         );
     }
 
     public createThread(
         laneId: string,
         payload: RawBotThreadPayload,
-    ): Promise<RawThread | null> {
-        return this.request<RawThread>(`/lanes/${segment(laneId)}/threads`, {
+    ): Promise<Thread | null> {
+        return this.requestEntity(`/lanes/${segment(laneId)}/threads`, ["thread"], Thread.from, {
             method: "POST",
             body: payload,
         });
     }
 
-    public getThread(threadId: string): Promise<RawThread | null> {
-        return this.request<RawThread>(`/threads/${segment(threadId)}`);
+    public getThread(threadId: string): Promise<Thread | null> {
+        return this.requestEntity(`/threads/${segment(threadId)}`, ["thread"], Thread.from);
     }
 
     public updateThread(
         threadId: string,
         payload: RawBotThreadPayload,
-    ): Promise<RawThread | null> {
-        return this.request<RawThread>(`/threads/${segment(threadId)}`, {
+    ): Promise<Thread | null> {
+        return this.requestEntity(`/threads/${segment(threadId)}`, ["thread"], Thread.from, {
             method: "PATCH",
             body: payload,
         });
@@ -454,32 +501,33 @@ export class BotREST {
         return this.request(`/threads/${segment(threadId)}`, { method: "DELETE" });
     }
 
-    public getThreadMessages(
-        threadId: string,
-        query?: BotQuery,
-    ): Promise<RawMessageList | null> {
-        return this.request<RawMessageList>(
+    public getThreadMessages(threadId: string, query?: BotQuery): Promise<Message[]> {
+        return this.requestList(
             withQuery(`/threads/${segment(threadId)}/messages`, query),
+            ["messages"],
+            Message.fromUnknown,
         );
     }
 
     public sendThreadMessage(
         threadId: string,
         payload: RawBotMessagePayload | string,
-    ): Promise<unknown> {
+    ): Promise<Message | null> {
         const body = typeof payload === "string" ? { content: payload } : payload;
 
-        return this.request(`/threads/${segment(threadId)}/messages`, {
-            method: "POST",
-            body,
-        });
+        return this.requestEntity(
+            `/threads/${segment(threadId)}/messages`,
+            ["message"],
+            Message.fromUnknown,
+            { method: "POST", body },
+        );
     }
 
-    public getThreadMembers(
-        threadId: string,
-    ): Promise<RawBotListResponse<RawThreadMember, "members"> | null> {
-        return this.request<RawBotListResponse<RawThreadMember, "members">>(
+    public getThreadMembers(threadId: string): Promise<ThreadMember[]> {
+        return this.requestList(
             `/threads/${segment(threadId)}/members`,
+            ["members"],
+            ThreadMember.from,
         );
     }
 
@@ -525,31 +573,24 @@ export class BotREST {
         roomId: string,
         payload: RawBotInvitePayload = {},
         idempotencyKey?: string,
-    ): Promise<RawInvite | null> {
-        return this.request<RawInvite>(`/rooms/${segment(roomId)}/invites`, {
+    ): Promise<Invite | null> {
+        return this.requestEntity(`/rooms/${segment(roomId)}/invites`, ["invite"], Invite.from, {
             method: "POST",
             body: payload,
             headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
         });
     }
 
-    public getInvite(code: string): Promise<RawInvite | null> {
-        return this.request<RawInvite>(`/invites/${segment(code)}`);
+    public getInvite(code: string): Promise<Invite | null> {
+        return this.requestEntity(`/invites/${segment(code)}`, ["invite"], Invite.from);
     }
 
-    public getRoomInvites(
-        roomId: string,
-    ): Promise<RawBotListResponse<RawInvite, "invites"> | null> {
-        return this.request<RawBotListResponse<RawInvite, "invites">>(
-            `/rooms/${segment(roomId)}/invites`,
-        );
+    public getRoomInvites(roomId: string): Promise<Invite[]> {
+        return this.requestList(`/rooms/${segment(roomId)}/invites`, ["invites"], Invite.from);
     }
 
-    public updateInvite(
-        code: string,
-        payload: RawBotInvitePayload,
-    ): Promise<RawInvite | null> {
-        return this.request<RawInvite>(`/invites/${segment(code)}`, {
+    public updateInvite(code: string, payload: RawBotInvitePayload): Promise<Invite | null> {
+        return this.requestEntity(`/invites/${segment(code)}`, ["invite"], Invite.from, {
             method: "PATCH",
             body: payload,
         });
@@ -559,36 +600,39 @@ export class BotREST {
         return this.request(`/invites/${segment(code)}`, { method: "DELETE" });
     }
 
-    public getScheduledEvents(
-        roomId: string,
-        query?: BotQuery,
-    ): Promise<RawBotListResponse<RawScheduledEvent, "events"> | null> {
-        return this.request<RawBotListResponse<RawScheduledEvent, "events">>(
+    public getScheduledEvents(roomId: string, query?: BotQuery): Promise<ScheduledEvent[]> {
+        return this.requestList(
             withQuery(`/rooms/${segment(roomId)}/events`, query),
+            ["events"],
+            ScheduledEvent.from,
         );
     }
 
-    public getScheduledEvent(eventId: string): Promise<RawScheduledEvent | null> {
-        return this.request<RawScheduledEvent>(`/events/${segment(eventId)}`);
+    public getScheduledEvent(eventId: string): Promise<ScheduledEvent | null> {
+        return this.requestEntity(`/events/${segment(eventId)}`, ["event"], ScheduledEvent.from);
     }
 
     public createScheduledEvent(
         roomId: string,
         payload: RawBotScheduledEventPayload,
-    ): Promise<RawScheduledEvent | null> {
-        return this.request<RawScheduledEvent>(`/rooms/${segment(roomId)}/events`, {
-            method: "POST",
-            body: payload,
-        });
+    ): Promise<ScheduledEvent | null> {
+        return this.requestEntity(
+            `/rooms/${segment(roomId)}/events`,
+            ["event"],
+            ScheduledEvent.from,
+            { method: "POST", body: payload },
+        );
     }
 
     public updateScheduledEvent(
         eventId: string,
         payload: RawBotScheduledEventPayload,
         scope = "OCCURRENCE",
-    ): Promise<RawScheduledEvent | null> {
-        return this.request<RawScheduledEvent>(
+    ): Promise<ScheduledEvent | null> {
+        return this.requestEntity(
             withQuery(`/events/${segment(eventId)}`, { scope }),
+            ["event"],
+            ScheduledEvent.from,
             { method: "PATCH", body: payload },
         );
     }
@@ -610,11 +654,11 @@ export class BotREST {
         return this.request(`/events/${segment(eventId)}/rsvp`, { method: "DELETE" });
     }
 
-    public getVoiceStates(
-        laneId: string,
-    ): Promise<RawBotListResponse<RawVoiceState, "users" | "states"> | null> {
-        return this.request<RawBotListResponse<RawVoiceState, "users" | "states">>(
+    public getVoiceStates(laneId: string): Promise<VoiceState[]> {
+        return this.requestList(
             `/lanes/${segment(laneId)}/voice-states`,
+            ["users", "states", "voiceStates"],
+            VoiceState.from,
         );
     }
 
@@ -632,15 +676,19 @@ export class BotREST {
         });
     }
 
-    public getVoiceIceServers(laneId?: string): Promise<RawIceServerResponse | null> {
-        return this.request<RawIceServerResponse>(
+    public getVoiceIceServers(laneId?: string): Promise<IceServerResponse | null> {
+        return this.requestEntity(
             withQuery("/voice/ice-servers", laneId ? { laneId } : undefined),
+            ["ice", "iceServersResponse"],
+            IceServerResponse.from,
         );
     }
 
-    public getVoiceTurnCredentials(laneId?: string): Promise<RawTurnCredentials | null> {
-        return this.request<RawTurnCredentials>(
+    public getVoiceTurnCredentials(laneId?: string): Promise<VoiceCredentials | null> {
+        return this.requestEntity(
             withQuery("/voice/turn-credentials", laneId ? { laneId } : undefined),
+            ["credentials", "turn"],
+            VoiceCredentials.from,
         );
     }
 
@@ -648,7 +696,7 @@ export class BotREST {
         laneId: string,
         card: RawContainerCardPayload,
         options: BotContainerOptions = {},
-    ): Promise<unknown> {
+    ): Promise<Message | null> {
         const components = this.containerComponents(card, options);
 
         return this.sendMessage(laneId, {
@@ -662,8 +710,8 @@ export class BotREST {
         card: RawContainerCardPayload,
         files: RawBotUploadInput[],
         options: BotContainerOptions = {},
-    ): Promise<{ message: unknown; uploads: Array<RawStagedUpload | null> }> {
-        const uploads: Array<RawStagedUpload | null> = [];
+    ): Promise<{ message: Message | null; uploads: Array<StagedUpload | null> }> {
+        const uploads: Array<StagedUpload | null> = [];
 
         for (const file of files) {
             if (isUploadFile(file)) {
@@ -692,7 +740,7 @@ export class BotREST {
     public async stageUpload(
         file: Blob | ArrayBuffer | ArrayBufferView | string,
         options: RawBotUploadOptions = {},
-    ): Promise<RawStagedUpload | null> {
+    ): Promise<StagedUpload | null> {
         const contentType = options.contentType ?? "application/octet-stream";
         const part = file instanceof Blob
             ? file
@@ -714,49 +762,59 @@ export class BotREST {
             form.append("description", options.description);
         }
 
-        return this.request<RawStagedUpload>("/uploads/staged", {
+        return this.requestEntity("/uploads/staged", ["upload", "stagedUpload"], StagedUpload.from, {
             method: "POST",
             body: form,
         });
     }
 
-    public getLaneWebhooks(
-        laneId: string,
-    ): Promise<RawBotListResponse<RawBotWebhook, "webhooks"> | null> {
-        return this.request<RawBotListResponse<RawBotWebhook, "webhooks">>(
+    public getLaneWebhooks(laneId: string): Promise<BotWebhook[]> {
+        return this.requestList(
             `/lanes/${segment(laneId)}/webhooks`,
+            ["webhooks"],
+            BotWebhook.from,
         );
     }
 
-    public getWebhook(webhookId: string): Promise<RawBotWebhook | null> {
-        return this.request<RawBotWebhook>(`/webhooks/${segment(webhookId)}`);
+    public getWebhook(webhookId: string): Promise<BotWebhook | null> {
+        return this.requestEntity(
+            `/webhooks/${segment(webhookId)}`,
+            ["webhook"],
+            BotWebhook.from,
+        );
     }
 
     public createWebhook(
         laneId: string,
         payload: RawBotWebhookPayload,
-    ): Promise<RawBotWebhook | null> {
-        return this.request<RawBotWebhook>(`/lanes/${segment(laneId)}/webhooks`, {
-            method: "POST",
-            body: payload,
-        });
+    ): Promise<BotWebhook | null> {
+        return this.requestEntity(
+            `/lanes/${segment(laneId)}/webhooks`,
+            ["webhook"],
+            BotWebhook.from,
+            { method: "POST", body: payload },
+        );
     }
 
     public updateWebhook(
         webhookId: string,
         payload: RawBotWebhookPayload,
-    ): Promise<RawBotWebhook | null> {
-        return this.request<RawBotWebhook>(`/webhooks/${segment(webhookId)}`, {
-            method: "PATCH",
-            body: payload,
-        });
+    ): Promise<BotWebhook | null> {
+        return this.requestEntity(
+            `/webhooks/${segment(webhookId)}`,
+            ["webhook"],
+            BotWebhook.from,
+            { method: "PATCH", body: payload },
+        );
     }
 
-    public resetWebhookToken(webhookId: string): Promise<RawBotWebhook | null> {
-        return this.request<RawBotWebhook>(`/webhooks/${segment(webhookId)}/token`, {
-            method: "POST",
-            body: {},
-        });
+    public resetWebhookToken(webhookId: string): Promise<BotWebhook | null> {
+        return this.requestEntity(
+            `/webhooks/${segment(webhookId)}/token`,
+            ["webhook"],
+            BotWebhook.from,
+            { method: "POST", body: {} },
+        );
     }
 
     public deleteWebhook(webhookId: string): Promise<unknown> {
@@ -795,7 +853,7 @@ export class BotREST {
     public createPoll(
         laneId: string,
         options: RawBotPollOptions,
-    ): Promise<unknown> {
+    ): Promise<Message | null> {
         const durationHours = options.durationHours ?? 24;
         const allowMultiselect = options.allowMultiselect ?? false;
         const allowedDurations = new Set([0, 1, 6, 24, 72, 168]);

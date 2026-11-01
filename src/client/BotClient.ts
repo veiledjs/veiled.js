@@ -1,6 +1,8 @@
 import { GatewayConnection } from "../gateway/GatewayConnection";
 import { GatewayEventContext } from "../gateway/GatewayEventContext";
 import type { GatewayEventName } from "../gateway/GatewayEvents";
+import { parseGatewayEvent } from "../gateway/GatewayEventStructures";
+import type { GatewayEventStructureMap } from "../gateway/GatewayEventStructures";
 import { GatewayState } from "../gateway/GatewayState";
 import {
     GatewayConnectionError,
@@ -41,7 +43,7 @@ export type BotClientEventMap = {
     error: [error: GatewayError];
     debug: [message: string, ...args: unknown[]];
 } & {
-    [K in GatewayEventName]: [payload: RawGatewayEvent, context: GatewayEventContext];
+    [K in GatewayEventName]: [payload: GatewayEventStructureMap[K], context: GatewayEventContext];
 };
 
 export type BotClientListener<K extends keyof BotClientEventMap> = (
@@ -312,10 +314,11 @@ export class BotClient {
             (id) => this.ack(id),
         );
 
+        const structure = parseGatewayEvent(name, payload);
         let failed = false;
 
         try {
-            await this.emitter.emitAsync(name, payload, context);
+            await this.emitter.emitAsync(name, structure as never, context);
         } catch (error) {
             failed = true;
             this.emitSafe("error", toGatewayError(error));
@@ -323,7 +326,7 @@ export class BotClient {
 
         if (this.anyListeners.size > 0) {
             const results = await Promise.allSettled(
-                [...this.anyListeners].map((listener) => listener(name, payload, context)),
+                [...this.anyListeners].map((listener) => listener(name, structure, context)),
             );
             const rejected = results.find((result) => result.status === "rejected");
 

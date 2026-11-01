@@ -13,12 +13,12 @@ import {
     GatewayState,
     hasIntent,
     isGatewayEventName,
+    Message,
 } from "../src";
 import type {
     GatewayCloseInfo,
     GatewayEventContext,
     ManagerLike,
-    RawGatewayEvent,
     RawGatewayReplayGap,
     SocketFactory,
     SocketLike,
@@ -527,7 +527,7 @@ describe("BotClient events", () => {
             socketFactory: fake.factory,
         });
         const contexts: GatewayEventContext[] = [];
-        const payloads: RawGatewayEvent[] = [];
+        const payloads: Message[] = [];
 
         client.on("MESSAGE_CREATE", (payload, context) => {
             payloads.push(payload);
@@ -544,6 +544,7 @@ describe("BotClient events", () => {
         await waitFor(() => fake.socket.emitted.some((entry) => entry.event === "gateway:ack"));
 
         expect(payloads).toHaveLength(1);
+        expect(payloads[0]).toBeInstanceOf(Message);
         expect(payloads[0]?.content).toBe("hello");
         expect(contexts[0]?.eventId).toBe("event-1");
         expect(contexts[0]?.replayed).toBe(true);

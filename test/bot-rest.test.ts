@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
     BotAPIError,
     BotClient,
+    BotIdentity,
     BotREST,
     DEFAULT_API_BASE_URL,
     createContainer,
@@ -67,7 +68,10 @@ describe("BotREST transport", () => {
         const { rest, requests } = createREST(identityResponse);
         const identity = await rest.getMe();
 
-        expect(identity).toEqual(identityResponse);
+        expect(identity).toBeInstanceOf(BotIdentity);
+        expect(identity?.raw).toEqual(identityResponse);
+        expect(identity?.user?.id).toBe("bot");
+        expect(identity?.application?.id).toBe("application");
         expect(requests[0]?.url.href).toBe("https://api.example.test/api/v1/bots/@me");
         expect(requests[0]?.method).toBe("GET");
         expect(requests[0]?.headers.get("Authorization")).toBe("Bot sample-token");

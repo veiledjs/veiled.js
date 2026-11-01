@@ -1,4 +1,5 @@
 import type { GatewayEventName } from "../../gateway/GatewayEvents";
+import type { GatewayEventStructure } from "../../gateway/GatewayEventStructures";
 import type { GatewayEventContext } from "../../gateway/GatewayEventContext";
 
 export interface RawGatewayEvent {
@@ -20,6 +21,6 @@ export interface GatewayCloseInfo {
 
 export type GatewayAnyListener = (
     name: GatewayEventName,
-    payload: RawGatewayEvent,
+    payload: GatewayEventStructure,
     context: GatewayEventContext,
 ) => void | Promise<void>;

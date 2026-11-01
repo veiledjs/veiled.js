@@ -25,7 +25,38 @@ export { GatewayREST, DEFAULT_API_BASE_URL } from "./rest/GatewayREST";
 export { WebhookREST } from "./rest/WebhookREST";
 export { WebhookAPIError } from "./rest/WebhookAPIError";
 
+export { Structure } from "./structures/Structure";
 export { Message } from "./structures/Message";
+export { Room } from "./structures/Room";
+export { Lane } from "./structures/Lane";
+export { Role } from "./structures/Role";
+export { Member } from "./structures/Member";
+export { Invite } from "./structures/Invite";
+export { Thread, ThreadMember } from "./structures/Thread";
+export { ScheduledEvent } from "./structures/ScheduledEvent";
+export { BotWebhook } from "./structures/BotWebhook";
+export { Application, BotGateway, BotIdentity } from "./structures/BotIdentity";
+export {
+    GatewayEvent,
+    Interaction,
+    JoinRequest,
+    LaneCapabilities,
+    MemberPermissions,
+    PollVote,
+    Presence,
+    ReactionEvent,
+    ReactionPage,
+    ReactionUser,
+    StagedUpload,
+    Typing,
+} from "./structures/Misc";
+export {
+    IceServer,
+    IceServerResponse,
+    VoiceCredentials,
+    VoiceRoster,
+    VoiceState,
+} from "./structures/Voice";
 export { User } from "./structures/User";
 export { Embed } from "./structures/Embed";
 export { Attachment } from "./structures/Attachment";
@@ -138,6 +169,10 @@ export type {
 } from "./client/BotClient";
 export type { GatewayConnectionEventMap } from "./gateway/GatewayConnection";
 export type { GatewayEventName } from "./gateway/GatewayEvents";
+export type {
+    GatewayEventStructure,
+    GatewayEventStructureMap,
+} from "./gateway/GatewayEventStructures";
 export type { GatewayAckHandler } from "./gateway/GatewayEventContext";
 export type {
     GatewayCloseInfo,

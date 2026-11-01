@@ -10,7 +10,7 @@
     "src"
   ],
   "scripts": {
-    "test": "bun test ./test/test.ts ./test/gateway.test.ts ./test/bot-rest.test.ts",
+    "test": "bun test ./test/test.ts ./test/gateway.test.ts ./test/bot-rest.test.ts ./test/structures.test.ts",
     "test:integration": "bun test ./test/integration.test.ts",
     "typecheck": "bunx tsc --noEmit",
     "example:bot": "bun run exemple/index.ts"

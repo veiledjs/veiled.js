@@ -69,8 +69,8 @@ const bot = new BotClient({
     shard: [0, 1],
 });
 
-bot.on(GatewayEvents.MESSAGE_CREATE, (payload, context) => {
-    console.log(payload);
+bot.on(GatewayEvents.MESSAGE_CREATE, (message, context) => {
+    console.log(message.author.username, message.content);
     // Listeners are awaited and durable events are acknowledged automatically.
 });
 
@@ -87,22 +87,23 @@ await bot.connect();
 - `onAny` receives every gateway event. `replayGap` is emitted separately and is never acked.
 - `disconnect()` closes intentionally and disables reconnection. Socket.IO reconnects are surfaced through `reconnecting`, `reconnected`, and `reconnectFailed`.
 - The initial `connect()` rejects on failure. Errors after a successful connection, such as failed reconnect attempts, are emitted as `error`.
-- Gateway event payloads are currently raw objects. Typed payload structures will be added when their schemas are available.
+- Gateway listeners receive parsed structures such as `Message`, `Room`, `Lane`, `Member`, `Thread`, `Invite`, and `Interaction`. The original event payload remains available through `structure.raw`.
+- Event listeners are typed per event: `MESSAGE_CREATE` gives a `Message`, `ROOM_CREATE` gives a `Room`, `INTERACTION_CREATE` gives an `Interaction`, and so on.
 
 A runnable example lives in [`exemple/`](./exemple). Set `VEILED_BOT_TOKEN` in `.env` and run `bun run example:bot`.
 
 ## Bot REST API
 
-`BotClient` exposes a `BotREST` instance as `bot.rest`, with `bot.api` as an alias:
+`BotClient` exposes a `BotREST` instance as `bot.rest`, with `bot.api` as an alias. Bot REST methods return parsed structures:
 
 ```ts
-const me = await bot.rest.getMe();
-const rooms = await bot.rest.getMyRooms();
-const lanes = await bot.rest.getLanes(roomId);
+const me = await bot.rest.getMe();          // BotIdentity | null
+const rooms = await bot.rest.getMyRooms(); // Room[]
+const lanes = await bot.rest.getLanes(roomId); // Lane[]
 
-await bot.rest.sendMessage(laneId, {
+const message = await bot.rest.sendMessage(laneId, {
     content: "Hello from veiled.js",
-});
+}); // Message | null
 
 await bot.rest.sendContainer(laneId, {
     title: "Build finished",
@@ -116,6 +117,8 @@ const messages = await bot.rest.getMessages(laneId, { limit: 10 });
 `sendContainerWithFiles()` stages uploads and sends them with a CV2 container. `createContainer()` and `isValidContainerPayload()` are exported for building or validating the raw component payload yourself.
 
 The bot client covers the bot, room, lane, member, role, moderation, message, reaction, pin, thread, invite, scheduled-event, voice, upload, webhook, and interaction routes. Methods accept the same IDs and payload field names as the Veiled API. IDs and emoji values are URL-encoded automatically, and query objects are supported alongside raw query strings.
+
+Parsed structures include `BotIdentity`, `Room`, `Lane`, `Member`, `Role`, `Message`, `Thread`, `ThreadMember`, `Invite`, `ScheduledEvent`, `BotWebhook`, `VoiceState`, `VoiceCredentials`, `LaneCapabilities`, `StagedUpload`, `ReactionPage`, `Presence`, `Interaction`, and `GatewayEvent`. Every structure keeps the original API object in `.raw`.
 
 Failed requests throw `BotAPIError`. Its `status`, `body`, `details`, and `retryAfter` fields make it possible to distinguish rate limits, permission failures, and other API errors.
 
@@ -168,7 +171,7 @@ The split is intentional: builders never parse responses, structures never build
 
 ## Status
 
-Webhooks, bot gateway connections, and the bot REST API are implemented. Gateway event payloads are still raw, and typed response structures for rooms, lanes, roles, threads, and scheduled events currently preserve the API's raw shape. Webhook response structures remain fully parsed.
+Webhooks, bot gateway connections, and the bot REST API are implemented. Gateway listeners and bot REST methods return parsed structures, with the original payloads available through `.raw`.
 
 ## License
 
