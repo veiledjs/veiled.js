@@ -1,19 +1,39 @@
 import { ComponentType } from "../types/payload/component";
-import type { RawActionRowPayload } from "../types/payload/component";
+import type {
+    RawActionRowComponentPayload,
+    RawActionRowPayload,
+} from "../types/payload/component";
 import { validateActionRowPayload } from "../util/validate";
 import { ButtonBuilder } from "./ButtonBuilder";
+import { StringSelectMenuBuilder } from "./StringSelectMenuBuilder";
+
+export interface ActionRowComponentBuilder<T extends RawActionRowComponentPayload = RawActionRowComponentPayload> {
+    toJSON(): T;
+}
 
 export class ActionRowBuilder {
-    private readonly buttons: ButtonBuilder[] = [];
+    private readonly components: ActionRowComponentBuilder[] = [];
 
-    public addButton(button: ButtonBuilder): this {
-        this.buttons.push(button);
+    public addComponent(component: ActionRowComponentBuilder): this {
+        this.components.push(component);
         return this;
     }
 
-    public addButtons(...buttons: ButtonBuilder[]): this {
-        this.buttons.push(...buttons);
+    public addComponents(...components: ActionRowComponentBuilder[]): this {
+        this.components.push(...components);
         return this;
+    }
+
+    public addButton(button: ButtonBuilder): this {
+        return this.addComponent(button);
+    }
+
+    public addButtons(...buttons: ButtonBuilder[]): this {
+        return this.addComponents(...buttons);
+    }
+
+    public addSelectMenu(select: StringSelectMenuBuilder): this {
+        return this.addComponent(select);
     }
 
     public addLinkButton(label: string, url: string): this {
@@ -23,7 +43,7 @@ export class ActionRowBuilder {
     public toJSON(): RawActionRowPayload {
         const data: RawActionRowPayload = {
             type: ComponentType.ActionRow,
-            components: this.buttons.map((button) => button.toJSON()),
+            components: this.components.map((component) => component.toJSON()),
         };
 
         validateActionRowPayload(data);

@@ -1,6 +1,10 @@
 export enum ComponentType {
     ActionRow = 1,
     Button = 2,
+    StringSelect = 3,
+    TextDisplay = 10,
+    Separator = 14,
+    Container = 17,
 }
 
 export enum ButtonStyle {
@@ -18,9 +22,30 @@ export interface RawButtonPayload {
     url?: string;
     custom_id?: string;
     disabled?: boolean;
+    emoji?: unknown;
 }
+
+export interface RawStringSelectOptionPayload {
+    label: string;
+    value: string;
+    description?: string;
+    default?: boolean;
+    emoji?: unknown;
+}
+
+export interface RawStringSelectPayload {
+    type: ComponentType.StringSelect;
+    custom_id: string;
+    options: RawStringSelectOptionPayload[];
+    placeholder?: string;
+    min_values?: number;
+    max_values?: number;
+    disabled?: boolean;
+}
+
+export type RawActionRowComponentPayload = RawButtonPayload | RawStringSelectPayload;
 
 export interface RawActionRowPayload {
     type: ComponentType.ActionRow;
-    components: RawButtonPayload[];
+    components: RawActionRowComponentPayload[];
 }

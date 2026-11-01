@@ -26,7 +26,7 @@ bun run exemple/index.ts
 
 ## Commands
 
-Lane-scoped commands use the lane they were sent in. Room-scoped commands use the current room, `ROOM_ID`, or the supplied ID. Command output is rendered with embeds; panels use Components V2 containers.
+Lane-scoped commands use the lane they were sent in. Room-scoped commands use the current room, `ROOM_ID`, or the supplied ID. Command output is rendered with embeds; panels use Components V2 containers. `!help` uses an interactive CV2 category menu with select and page buttons.
 
 `!help`, `!help <command>`, `!methods`, `!call <method> [jsonArgs]`, `!tour [laneId]`
 

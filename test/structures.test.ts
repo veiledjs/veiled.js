@@ -655,6 +655,23 @@ describe("Misc structures", () => {
         expect(interaction.commandName).toBeNull();
     });
 
+    test("preserves direct gateway interaction envelopes", () => {
+        const interaction = Interaction.from({
+            interaction_id: "interaction2",
+            application_id: "app1",
+            channel_id: "lane1",
+            type: 3,
+            data: { custom_id: "help:category", values: ["rooms"] },
+            user,
+        });
+
+        expect(interaction.id).toBe("interaction2");
+        expect(interaction.type).toBe(3);
+        expect(interaction.customId).toBe("help:category");
+        expect(interaction.data.values).toEqual(["rooms"]);
+        expect(interaction.user?.id).toBe("user1");
+    });
+
     test("parses typing events", () => {
         const typing = Typing.from({
             typing: { userId: "user1", laneId: "lane1", roomId: "room1", user, timestamp: "2026-09-01T00:00:00.000Z" },

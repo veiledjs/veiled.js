@@ -60,7 +60,7 @@ import { ScheduledEvent } from "../structures/ScheduledEvent";
 import { Thread, ThreadMember } from "../structures/Thread";
 import { IceServerResponse, VoiceCredentials, VoiceState } from "../structures/Voice";
 import { normalizeBotToken } from "../util/botToken";
-import { createContainer, isValidContainerPayload } from "../util/container";
+import { createContainer, isValidContainerPayload } from "../builders/ContainerBuilder";
 import { isValidUrl } from "../util/isValidUrl";
 import { unwrapList, unwrapRecord } from "../util/structure";
 

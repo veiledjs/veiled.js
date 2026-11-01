@@ -1,10 +1,17 @@
 import { describe, expect, test } from "bun:test";
 import {
+    ActionRowBuilder,
     BotAPIError,
     BotClient,
     BotIdentity,
     BotREST,
+    ButtonBuilder,
+    ContainerBuilder,
     DEFAULT_API_BASE_URL,
+    SeparatorBuilder,
+    StringSelectMenuBuilder,
+    StringSelectMenuOptionBuilder,
+    TextDisplayBuilder,
     createContainer,
     isValidContainerPayload,
 } from "../src";
@@ -157,6 +164,147 @@ describe("Container payloads", () => {
             linkButtons: [{ label: "Bad", url: "javascript:alert(1)" }],
         })).toThrow(TypeError);
         expect(isValidContainerPayload([{ type: 1, components: [] }])).toBe(false);
+    });
+
+    test("supports interactive select menus and buttons in action rows", () => {
+        const components = createContainer({
+            title: "Help",
+            actionRows: [
+                {
+                    type: 1,
+                    components: [{
+                        type: 3,
+                        custom_id: "help:category",
+                        placeholder: "Choose a category",
+                        options: [
+                            { label: "Home", value: "home", default: true },
+                            { label: "Rooms", value: "rooms", description: "Room commands" },
+                        ],
+                    }],
+                },
+                {
+                    type: 1,
+                    components: [
+                        { type: 2, style: 2, label: "Home", custom_id: "help:home" },
+                        { type: 2, style: 2, label: "Next", custom_id: "help:next", disabled: true },
+                    ],
+                },
+            ],
+        });
+
+        expect(isValidContainerPayload(components)).toBe(true);
+        expect(components[0]?.components.map((component) => component.type)).toEqual([10, 1, 1]);
+
+        const select = components[0]?.components[1];
+        expect(select?.type).toBe(1);
+
+        if (select?.type === 1) {
+            expect(select.components[0]).toEqual({
+                type: 3,
+                custom_id: "help:category",
+                placeholder: "Choose a category",
+                options: [
+                    { label: "Home", value: "home", default: true },
+                    { label: "Rooms", value: "rooms", description: "Room commands" },
+                ],
+            });
+        }
+
+        const buttons = components[0]?.components[2];
+        expect(buttons?.type).toBe(1);
+
+        if (buttons?.type === 1) {
+            expect(buttons.components).toEqual([
+                { type: 2, style: 2, label: "Home", custom_id: "help:home" },
+                { type: 2, style: 2, label: "Next", custom_id: "help:next", disabled: true },
+            ]);
+        }
+    });
+
+    test("rejects malformed interactive action rows", () => {
+        expect(() => createContainer({
+            actionRows: [{ type: 1, components: [] }],
+        })).toThrow(RangeError);
+        expect(() => createContainer({
+            actionRows: [{ type: 1, components: [{ type: 2, style: 2, custom_id: "" }] }],
+        })).toThrow(TypeError);
+        expect(() => createContainer({
+            actionRows: [{ type: 1, components: [{ type: 2, style: 2, custom_id: "empty" }] }],
+        })).toThrow(TypeError);
+        expect(() => createContainer({
+            actionRows: [{
+                type: 1,
+                components: [{ type: 3, custom_id: "menu", options: [] }],
+            }],
+        })).toThrow(RangeError);
+        expect(() => createContainer({
+            actionRows: [
+                { type: 1, components: [{ type: 2, style: 2, label: "One", custom_id: "same" }] },
+                { type: 1, components: [{ type: 2, style: 2, label: "Two", custom_id: "same" }] },
+            ],
+        })).toThrow(TypeError);
+    });
+
+    test("builds interactive CV2 containers through builders", () => {
+        const select = new StringSelectMenuBuilder("help:category")
+            .setPlaceholder("Choose a category")
+            .addOptions(
+                new StringSelectMenuOptionBuilder("Home", "home").setDefault(),
+                new StringSelectMenuOptionBuilder("Rooms", "rooms").setDescription("Room commands"),
+            );
+
+        const container = new ContainerBuilder()
+            .setAccentColor(0x5865f2)
+            .addTitle("Help")
+            .addDescription("Browse commands.")
+            .addSeparator()
+            .addTextDisplay(new TextDisplayBuilder("Pick a category below."))
+            .addActionRow(new ActionRowBuilder().addSelectMenu(select))
+            .addActionRow(new ActionRowBuilder().addButtons(
+                ButtonBuilder.secondary("Home", "help:home"),
+                ButtonBuilder.secondary("Next", "help:next").setDisabled(),
+            ))
+            .toJSON();
+
+        expect(container.type).toBe(17);
+        expect(container.accent_color).toBe(0x5865f2);
+        expect(container.components.map((component) => component.type)).toEqual([
+            10,
+            10,
+            14,
+            10,
+            1,
+            1,
+        ]);
+
+        const selectRow = container.components[4];
+
+        if (selectRow?.type === 1) {
+            expect(selectRow.components[0]).toEqual({
+                type: 3,
+                custom_id: "help:category",
+                options: [
+                    { label: "Home", value: "home", default: true },
+                    { label: "Rooms", value: "rooms", description: "Room commands" },
+                ],
+                placeholder: "Choose a category",
+            });
+        }
+
+        expect(new SeparatorBuilder(2).toJSON()).toEqual({
+            type: 14,
+            divider: true,
+            spacing: 2,
+        });
+    });
+
+    test("validates select menu builders", () => {
+        expect(() => new StringSelectMenuBuilder("").addOption(
+            new StringSelectMenuOptionBuilder("Home", "home"),
+        ).toJSON()).toThrow(TypeError);
+        expect(() => new StringSelectMenuBuilder("menu").toJSON()).toThrow(RangeError);
+        expect(() => new StringSelectMenuOptionBuilder("", "home").toJSON()).toThrow(TypeError);
+        expect(() => new StringSelectMenuOptionBuilder("Home", "").toJSON()).toThrow(TypeError);
     });
 });
 

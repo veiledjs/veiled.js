@@ -1,5 +1,17 @@
 import { ButtonStyle, ComponentType } from "../types/payload/component";
-import type { RawActionRowPayload, RawButtonPayload } from "../types/payload/component";
+import type {
+    RawActionRowComponentPayload,
+    RawActionRowPayload,
+    RawButtonPayload,
+    RawStringSelectOptionPayload,
+    RawStringSelectPayload,
+} from "../types/payload/component";
+import type {
+    RawContainerActionRow,
+    RawContainerPayload,
+    RawContainerTextDisplay,
+    RawContainerDivider,
+} from "../types/payload/container";
 import type { RawEmbedPayload } from "../types/payload/embed";
 import type { RawMessagePayload, RawWebhookMessagePayload } from "../types/payload/message";
 import { isValidUrl } from "./isValidUrl";
@@ -19,6 +31,13 @@ export const LIMITS = {
     buttonsPerRow: 5,
     buttonLabel: 80,
     buttonCustomId: 100,
+    selectOptions: 25,
+    selectLabel: 100,
+    selectValue: 100,
+    selectDescription: 100,
+    selectPlaceholder: 150,
+    containerText: 4000,
+    containerChildren: 10,
 } as const;
 
 const COLOR = /^#[0-9a-f]{6}$/i;
@@ -32,6 +51,12 @@ function assertMaxLength(value: string, max: number, name: string): void {
 function assertUrl(value: string, name: string): void {
     if (!isValidUrl(value)) {
         throw new TypeError(`${name} must be a valid URL`);
+    }
+
+    const protocol = new URL(value).protocol;
+
+    if (protocol !== "http:" && protocol !== "https:") {
+        throw new TypeError(`${name} must use HTTP or HTTPS`);
     }
 }
 
@@ -117,6 +142,10 @@ export function validateButtonPayload(button: RawButtonPayload): void {
         assertMaxLength(button.label, LIMITS.buttonLabel, "Button label");
     }
 
+    if (button.label === undefined && button.emoji === undefined) {
+        throw new TypeError("Buttons must have a label or an emoji");
+    }
+
     if (button.style === ButtonStyle.Link) {
         if (button.url === undefined) {
             throw new TypeError("Link buttons require a url");
@@ -141,21 +170,165 @@ export function validateButtonPayload(button: RawButtonPayload): void {
     assertCustomId(button.custom_id, "Button custom_id");
 }
 
+export function validateStringSelectOptionPayload(option: RawStringSelectOptionPayload): void {
+    if (typeof option.label !== "string" || option.label.length === 0) {
+        throw new TypeError("Select option labels must not be empty");
+    }
+
+    assertMaxLength(option.label, LIMITS.selectLabel, "Select option label");
+
+    if (typeof option.value !== "string" || option.value.length === 0) {
+        throw new TypeError("Select option values must not be empty");
+    }
+
+    assertMaxLength(option.value, LIMITS.selectValue, "Select option value");
+
+    if (option.description !== undefined) {
+        assertMaxLength(option.description, LIMITS.selectDescription, "Select option description");
+    }
+}
+
+export function validateStringSelectPayload(select: RawStringSelectPayload): void {
+    if (select.type !== ComponentType.StringSelect) {
+        throw new TypeError("Select menu type must be ComponentType.StringSelect");
+    }
+
+    assertCustomId(select.custom_id, "Select menu custom_id");
+
+    if (!Array.isArray(select.options) || select.options.length === 0) {
+        throw new RangeError("Select menus must contain at least 1 option");
+    }
+
+    if (select.options.length > LIMITS.selectOptions) {
+        throw new RangeError(`Select menus can contain at most ${LIMITS.selectOptions} options`);
+    }
+
+    if (select.placeholder !== undefined) {
+        assertMaxLength(select.placeholder, LIMITS.selectPlaceholder, "Select menu placeholder");
+    }
+
+    for (const option of select.options) {
+        validateStringSelectOptionPayload(option);
+    }
+
+    if (select.min_values !== undefined
+        && (!Number.isInteger(select.min_values) || select.min_values < 0 || select.min_values > select.options.length)) {
+        throw new RangeError("Select menu min_values is invalid");
+    }
+
+    if (select.max_values !== undefined
+        && (!Number.isInteger(select.max_values) || select.max_values < 1 || select.max_values > select.options.length)) {
+        throw new RangeError("Select menu max_values is invalid");
+    }
+
+    if (select.min_values !== undefined
+        && select.max_values !== undefined
+        && select.min_values > select.max_values) {
+        throw new RangeError("Select menu min_values cannot exceed max_values");
+    }
+}
+
+export function validateActionRowComponentPayload(component: RawActionRowComponentPayload): void {
+    if (component.type === ComponentType.Button) {
+        validateButtonPayload(component);
+        return;
+    }
+
+    if (component.type === ComponentType.StringSelect) {
+        validateStringSelectPayload(component);
+        return;
+    }
+
+    throw new TypeError("Unsupported action row component type");
+}
+
 export function validateActionRowPayload(row: RawActionRowPayload): void {
     if (row.type !== ComponentType.ActionRow) {
         throw new TypeError("Row type must be ComponentType.ActionRow");
     }
 
     if (row.components.length === 0) {
-        throw new RangeError("Action rows must contain at least 1 button");
+        throw new RangeError("Action rows must contain at least 1 component");
     }
 
     if (row.components.length > LIMITS.buttonsPerRow) {
-        throw new RangeError(`Action rows can contain at most ${LIMITS.buttonsPerRow} buttons`);
+        throw new RangeError(`Action rows can contain at most ${LIMITS.buttonsPerRow} components`);
     }
 
-    for (const button of row.components) {
-        validateButtonPayload(button);
+    for (const component of row.components) {
+        validateActionRowComponentPayload(component);
+    }
+}
+
+export function validateTextDisplayPayload(display: RawContainerTextDisplay): void {
+    if (display.type !== ComponentType.TextDisplay) {
+        throw new TypeError("Text display type must be ComponentType.TextDisplay");
+    }
+
+    if (typeof display.content !== "string" || display.content.trim().length === 0) {
+        throw new TypeError("Text display content must not be empty");
+    }
+
+    assertMaxLength(display.content, LIMITS.containerText, "Container text");
+}
+
+export function validateSeparatorPayload(separator: RawContainerDivider): void {
+    if (separator.type !== ComponentType.Separator || separator.divider !== true) {
+        throw new TypeError("Separator must use the divider separator type");
+    }
+
+    if (!Number.isInteger(separator.spacing) || separator.spacing < 1 || separator.spacing > 2) {
+        throw new RangeError("Separator spacing must be 1 or 2");
+    }
+}
+
+export function validateContainerActionRowPayload(row: RawContainerActionRow): void {
+    validateActionRowPayload(row as RawActionRowPayload);
+}
+
+export function validateContainerPayload(container: RawContainerPayload): void {
+    if (container.type !== ComponentType.Container) {
+        throw new TypeError("Container type must be ComponentType.Container");
+    }
+
+    if (!Number.isInteger(container.accent_color)
+        || container.accent_color < 0
+        || container.accent_color > 0xffffff) {
+        throw new RangeError("Container accent_color must be a valid color integer");
+    }
+
+    if (!Array.isArray(container.components) || container.components.length === 0) {
+        throw new RangeError("Containers must contain at least 1 component");
+    }
+
+    if (container.components.length > LIMITS.containerChildren) {
+        throw new RangeError(`Containers can contain at most ${LIMITS.containerChildren} components`);
+    }
+
+    const customIds = new Set<string>();
+
+    for (const component of container.components) {
+        if (component.type === ComponentType.ActionRow) {
+            validateContainerActionRowPayload(component);
+
+            for (const child of component.components) {
+                const customId = "custom_id" in child ? child.custom_id : undefined;
+
+                if (typeof customId === "string") {
+                    if (customIds.has(customId)) {
+                        throw new TypeError("Interactive component custom_id values must be unique within a message");
+                    }
+
+                    customIds.add(customId);
+                }
+            }
+        } else if (component.type === ComponentType.TextDisplay) {
+            validateTextDisplayPayload(component);
+        } else if (component.type === ComponentType.Separator) {
+            validateSeparatorPayload(component);
+        } else {
+            throw new TypeError("Unsupported container component type");
+        }
     }
 }
 

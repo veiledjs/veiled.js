@@ -13,6 +13,7 @@ export interface CommandContext {
 
 export interface CommandDefinition {
     name: string;
+    category?: string;
     description: string;
     usage: string;
     aliases?: string[];
@@ -27,4 +28,11 @@ export function defineCommands(...commands: CommandDefinition[]): CommandMap {
 
 export function mergeCommands(...maps: CommandMap[]): CommandMap {
     return Object.assign({}, ...maps);
+}
+
+export function withCategory(map: CommandMap, category: string): CommandMap {
+    return Object.fromEntries(Object.entries(map).map(([name, command]) => [
+        name,
+        { ...command, category },
+    ]));
 }

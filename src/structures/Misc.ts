@@ -185,7 +185,19 @@ export class Interaction extends Structure<Record<string, unknown>> {
     }
 
     public static from(value: unknown): Interaction {
-        return new Interaction(unwrapRecord(value, ["interaction", "Interaction"]) as Record<string, unknown>);
+        const root = asRecord(value);
+        const payload = asRecord(root.payload);
+        const data = asRecord(root.data);
+        const nested = asRecord(
+            root.interaction
+            ?? root.Interaction
+            ?? payload.interaction
+            ?? payload.Interaction
+            ?? data.interaction
+            ?? data.Interaction,
+        );
+
+        return new Interaction(hasRecord(nested) ? nested : root);
     }
 }
 

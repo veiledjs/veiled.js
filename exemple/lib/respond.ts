@@ -1,4 +1,4 @@
-import type { BotClient, Message } from "../../src";
+import type { BotClient, BotContainerOptions, Message } from "../../src";
 import { EmbedBuilder } from "../../src";
 import type { RawContainerCardPayload } from "../../src";
 import { colors, stringify, truncate } from "./format";
@@ -31,8 +31,9 @@ export async function sendContainer(
     client: BotClient,
     laneId: string,
     card: RawContainerCardPayload,
+    options: BotContainerOptions = {},
 ): Promise<Message | null> {
-    return client.rest.sendContainer(laneId, card);
+    return client.rest.sendContainer(laneId, card, options);
 }
 
 export async function sendJson(

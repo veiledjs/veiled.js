@@ -114,7 +114,7 @@ await bot.rest.sendContainer(laneId, {
 const messages = await bot.rest.getMessages(laneId, { limit: 10 });
 ```
 
-`sendContainerWithFiles()` stages uploads and sends them with a CV2 container. `createContainer()` and `isValidContainerPayload()` are exported for building or validating the raw component payload yourself.
+`sendContainerWithFiles()` stages uploads and sends them with a CV2 container. Use `ContainerBuilder`, `TextDisplayBuilder`, `SeparatorBuilder`, `ActionRowBuilder`, and `StringSelectMenuBuilder` to compose interactive containers. `createContainer()` and `isValidContainerPayload()` remain available as convenience helpers for card-style payloads.
 
 The bot client covers the bot, room, lane, member, role, moderation, message, reaction, pin, thread, invite, scheduled-event, voice, upload, webhook, and interaction routes. Methods accept the same IDs and payload field names as the Veiled API. IDs and emoji values are URL-encoded automatically, and query objects are supported alongside raw query strings.
 
@@ -136,10 +136,12 @@ Owner-session endpoints such as application-command management, interaction subm
 
 - `WebhookMessageBuilder` handles `username`, `avatar_url`, `content`, `embeds`, and `components`.
 - `EmbedBuilder` covers title, description, URL, color, author, thumbnail, image, fields, footer, and timestamp.
-- `ActionRowBuilder` holds up to five buttons.
+- `ActionRowBuilder` holds up to five buttons or one string select menu.
 - `ButtonBuilder` has `link`, `primary`, `secondary`, `success`, `danger`, and `custom` helpers. `setDisabled()` works on all of them.
+- `StringSelectMenuBuilder` and `StringSelectMenuOptionBuilder` build interactive select menus.
+- `ContainerBuilder`, `TextDisplayBuilder`, and `SeparatorBuilder` build Components V2 containers with text, dividers, accent colors, and action rows.
+- `createContainer` is a convenience wrapper for card-style containers with title, description, sections, footer, accent color, and link buttons.
 - `MessageBuilder` is the shared base, so channels can reuse it later.
-- `createContainer` builds a Components V2 container with text sections, dividers, footers, accent color, and link buttons.
 
 ## Validation
 

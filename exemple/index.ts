@@ -12,7 +12,7 @@ import {
     defaultRoomId,
     prefix,
 } from "./config";
-import { resolveCommand } from "./commands";
+import { createHelpComponents, parseHelpControl, resolveCommand } from "./commands";
 import { reply } from "./lib/respond";
 import { colors, plain, stringOf } from "./lib/format";
 
@@ -129,17 +129,45 @@ async function handleMessage(message: Message): Promise<void> {
 }
 
 async function handleInteraction(interaction: Interaction): Promise<void> {
-    if (!interaction.id) return;
+    const raw = interaction.raw as unknown as Record<string, unknown>;
+    const rawData = plain(raw.data);
+    const interactionId = interaction.id
+        || stringOf(raw.interaction_id)
+        || stringOf(raw.id);
+    const customId = interaction.customId
+        || stringOf(rawData.custom_id)
+        || stringOf(rawData.customId);
+    const values = interaction.data.values ?? rawData.values;
+
+    if (!interactionId) {
+        console.error("Interaction payload is missing an interaction ID.", raw);
+        return;
+    }
+
+    const helpControl = parseHelpControl(customId, values);
+
+    if (helpControl) {
+        try {
+            await bot.rest.respondToInteraction(interactionId, {
+                type: "update",
+                components: createHelpComponents(prefix, helpControl.category, helpControl.page),
+            });
+        } catch (error) {
+            console.error("Could not update the help menu:", errorMessage(error));
+        }
+
+        return;
+    }
 
     const embed = new EmbedBuilder()
         .setTitle("Interaction received")
         .setDescription("The veiled.js example bot parsed this interaction into a typed structure.")
         .setColor(colors.brand)
-        .addField("Interaction ID", interaction.id, true)
+        .addField("Interaction ID", interactionId, true)
         .addField("Type", String(interaction.type ?? "unknown"), true)
         .addField("User", interaction.user?.username ?? interaction.user?.id ?? "unknown", true)
         .addField("Command", interaction.commandName ?? "—", true)
-        .addField("Component", interaction.customId ?? "—", true)
+        .addField("Component", customId || "—", true)
         .setFooter("interaction reply")
         .setTimestamp();
 
@@ -150,9 +178,9 @@ async function handleInteraction(interaction: Interaction): Promise<void> {
     };
 
     try {
-        await bot.rest.respondToInteraction(interaction.id, response);
+        await bot.rest.respondToInteraction(interactionId, response);
     } catch {
-        await bot.rest.respondToCommandInteraction(interaction.id, response).catch((error) => {
+        await bot.rest.respondToCommandInteraction(interactionId, response).catch((error) => {
             console.error("Could not answer interaction:", errorMessage(error));
         });
     }

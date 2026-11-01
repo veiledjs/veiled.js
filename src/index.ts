@@ -71,7 +71,11 @@ export { ActionRowBuilder } from "./builders/ActionRowBuilder";
 export { ButtonBuilder } from "./builders/ButtonBuilder";
 
 export { ComponentType, ButtonStyle } from "./types/payload/component";
-export { createContainer, isValidContainerPayload } from "./util/container";
+export { ContainerBuilder, createContainer, isValidContainerPayload } from "./builders/ContainerBuilder";
+export { TextDisplayBuilder } from "./builders/TextDisplayBuilder";
+export { SeparatorBuilder } from "./builders/SeparatorBuilder";
+export { StringSelectMenuBuilder } from "./builders/StringSelectMenuBuilder";
+export { StringSelectMenuOptionBuilder } from "./builders/StringSelectMenuOptionBuilder";
 export { LIMITS } from "./util/validate";
 
 export type {
@@ -100,6 +104,8 @@ export type {
 } from "./types/payload/bot";
 export type {
     RawContainerActionRow,
+    RawContainerActionRowComponent,
+    RawContainerButton,
     RawContainerCardPayload,
     RawContainerChild,
     RawContainerDivider,
@@ -107,6 +113,8 @@ export type {
     RawContainerLinkButtonPayload,
     RawContainerPayload,
     RawContainerSectionPayload,
+    RawContainerStringSelect,
+    RawContainerStringSelectOption,
     RawContainerTextDisplay,
 } from "./types/payload/container";
 export type {
@@ -148,8 +156,11 @@ export type {
     RawEmbedFieldPayload,
 } from "./types/payload/embed";
 export type {
-    RawButtonPayload,
+    RawActionRowComponentPayload,
     RawActionRowPayload,
+    RawButtonPayload,
+    RawStringSelectOptionPayload,
+    RawStringSelectPayload,
 } from "./types/payload/component";
 export type {
     RawMessage,

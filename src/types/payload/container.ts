@@ -1,3 +1,9 @@
+import type {
+    RawButtonPayload,
+    RawStringSelectOptionPayload,
+    RawStringSelectPayload,
+} from "./component";
+
 export interface RawContainerLinkButtonPayload {
     label: string;
     url: string;
@@ -15,6 +21,7 @@ export interface RawContainerCardPayload {
     footer?: string;
     accentColor?: number;
     linkButtons?: RawContainerLinkButtonPayload[];
+    actionRows?: RawContainerActionRow[];
 }
 
 export interface RawContainerTextDisplay {
@@ -35,9 +42,18 @@ export interface RawContainerLinkButton {
     url: string;
 }
 
+export type RawContainerButton = RawButtonPayload;
+export type RawContainerStringSelect = RawStringSelectPayload;
+export type RawContainerStringSelectOption = RawStringSelectOptionPayload;
+
+export type RawContainerActionRowComponent =
+    | RawContainerLinkButton
+    | RawContainerButton
+    | RawContainerStringSelect;
+
 export interface RawContainerActionRow {
     type: 1;
-    components: RawContainerLinkButton[];
+    components: RawContainerActionRowComponent[];
 }
 
 export type RawContainerChild =
