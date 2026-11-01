@@ -19,6 +19,8 @@ export {
     GatewayNotConnectedError,
 } from "./gateway/errors";
 
+export { BotREST } from "./rest/BotREST";
+export { BotAPIError } from "./rest/BotAPIError";
 export { GatewayREST, DEFAULT_API_BASE_URL } from "./rest/GatewayREST";
 export { WebhookREST } from "./rest/WebhookREST";
 export { WebhookAPIError } from "./rest/WebhookAPIError";
@@ -38,12 +40,75 @@ export { ActionRowBuilder } from "./builders/ActionRowBuilder";
 export { ButtonBuilder } from "./builders/ButtonBuilder";
 
 export { ComponentType, ButtonStyle } from "./types/payload/component";
+export { createContainer, isValidContainerPayload } from "./util/container";
 export { LIMITS } from "./util/validate";
 
 export type {
     RawMessagePayload,
     RawWebhookMessagePayload,
 } from "./types/payload/message";
+export type {
+    BotQuery,
+    BotQueryValue,
+    RawBotBanPayload,
+    RawBotInteractionPayload,
+    RawBotInvitePayload,
+    RawBotMessageEditPayload,
+    RawBotMessagePayload,
+    RawBotPollOptions,
+    RawBotReactionQuery,
+    RawBotRolePayload,
+    RawBotRolePosition,
+    RawBotScheduledEventPayload,
+    RawBotThreadPayload,
+    RawBotUploadData,
+    RawBotUploadFile,
+    RawBotUploadInput,
+    RawBotUploadOptions,
+    RawBotWebhookPayload,
+} from "./types/payload/bot";
+export type {
+    RawContainerActionRow,
+    RawContainerCardPayload,
+    RawContainerChild,
+    RawContainerDivider,
+    RawContainerLinkButton,
+    RawContainerLinkButtonPayload,
+    RawContainerPayload,
+    RawContainerSectionPayload,
+    RawContainerTextDisplay,
+} from "./types/payload/container";
+export type {
+    RawApplication,
+    RawBotGateway,
+    RawBotIdentity,
+    RawBotListResponse,
+    RawBotWebhook,
+    RawIceServer,
+    RawIceServerResponse,
+    RawInvite,
+    RawLane,
+    RawLaneCapabilities,
+    RawMember,
+    RawMemberPermissions,
+    RawMessageList,
+    RawReactionPage,
+    RawReactionUser,
+    RawRole,
+    RawRoom,
+    RawScheduledEvent,
+    RawStagedUpload,
+    RawThread,
+    RawThreadMember,
+    RawTurnCredentials,
+    RawVoiceState,
+} from "./types/response/bot";
+export type { BotAPIErrorOptions } from "./rest/BotAPIError";
+export type {
+    BotContainerOptions,
+    BotRESTOptions,
+    BotRequestOptions,
+} from "./rest/BotREST";
 export type {
     RawEmbedPayload,
     RawEmbedImagePayload,
@@ -88,3 +153,4 @@ export type {
     Shard,
 } from "./types/gateway/options";
 export type { ManagerLike, SocketFactory, SocketLike } from "./types/gateway/socket";
+export type { FetchLike } from "./types/rest";

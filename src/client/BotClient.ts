@@ -7,6 +7,7 @@ import {
     GatewayError,
     GatewayNotConnectedError,
 } from "../gateway/errors";
+import { BotREST } from "../rest/BotREST";
 import { DEFAULT_API_BASE_URL, GatewayREST } from "../rest/GatewayREST";
 import type { GatewayAckResult } from "../types/gateway/ack";
 import type {
@@ -22,6 +23,7 @@ import type {
     Shard,
 } from "../types/gateway/options";
 import type { SocketFactory } from "../types/gateway/socket";
+import type { FetchLike } from "../types/rest";
 import { TypedEventEmitter } from "../util/TypedEventEmitter";
 import { isValidUrl } from "../util/isValidUrl";
 
@@ -53,6 +55,8 @@ interface NormalizedBotClientOptions {
     gatewayUrl: string | undefined;
     apiBaseUrl: string;
     urlResolver: (() => string | Promise<string>) | undefined;
+    fetchImpl: FetchLike | undefined;
+    requestTimeoutMs: number | undefined;
     autoAck: boolean;
     connectTimeoutMs: number;
     ackTimeoutMs: number;
@@ -67,6 +71,9 @@ export class BotClient {
     private readonly anyListeners = new Set<GatewayAnyListener>();
     private readonly ackPromises = new Map<string, Promise<GatewayAckResult>>();
 
+    public readonly rest: BotREST;
+    public readonly api: BotREST;
+
     private connection: GatewayConnection | undefined;
     private connectPromise: Promise<void> | undefined;
     private connectionAttempt = 0;
@@ -74,6 +81,13 @@ export class BotClient {
 
     public constructor(options: BotClientOptions) {
         this.options = normalizeOptions(options);
+        this.rest = new BotREST({
+            token: this.options.token,
+            baseUrl: this.options.apiBaseUrl,
+            fetchImpl: this.options.fetchImpl,
+            timeoutMs: this.options.requestTimeoutMs,
+        });
+        this.api = this.rest;
     }
 
     public get state(): GatewayState {
@@ -226,7 +240,11 @@ export class BotClient {
         const resolved = gatewayUrl
             ?? (urlResolver
                 ? await urlResolver()
-                : await new GatewayREST({ baseUrl: apiBaseUrl, token }).getGatewayUrl());
+                : await new GatewayREST({
+                    baseUrl: apiBaseUrl,
+                    token,
+                    fetchImpl: this.options.fetchImpl,
+                }).getGatewayUrl());
 
         if (!isValidUrl(resolved)) {
             throw new GatewayConnectionError("Resolved gateway url is invalid");
@@ -382,6 +400,15 @@ function normalizeOptions(options: BotClientOptions): NormalizedBotClientOptions
         throw new RangeError("ackTimeoutMs must be a positive integer");
     }
 
+    if (options.requestTimeoutMs !== undefined
+        && (!Number.isInteger(options.requestTimeoutMs) || options.requestTimeoutMs <= 0)) {
+        throw new RangeError("requestTimeoutMs must be a positive integer");
+    }
+
+    if (options.fetchImpl !== undefined && typeof options.fetchImpl !== "function") {
+        throw new TypeError("fetchImpl must be a function");
+    }
+
     const reconnect = options.reconnect ?? {};
 
     if (reconnect !== false) {
@@ -395,6 +422,8 @@ function normalizeOptions(options: BotClientOptions): NormalizedBotClientOptions
         gatewayUrl: options.gatewayUrl,
         apiBaseUrl: options.apiBaseUrl ?? DEFAULT_API_BASE_URL,
         urlResolver: options.urlResolver,
+        fetchImpl: options.fetchImpl,
+        requestTimeoutMs: options.requestTimeoutMs,
         autoAck: options.autoAck ?? true,
         connectTimeoutMs,
         ackTimeoutMs,

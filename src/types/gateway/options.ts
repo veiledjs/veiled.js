@@ -1,3 +1,4 @@
+import type { FetchLike } from "../rest";
 import type { SocketFactory } from "./socket";
 
 export type Shard = readonly [shardId: number, shardCount: number];
@@ -16,6 +17,9 @@ export interface BotClientOptions {
     gatewayUrl?: string;
     apiBaseUrl?: string;
     urlResolver?: () => string | Promise<string>;
+
+    fetchImpl?: FetchLike;
+    requestTimeoutMs?: number;
 
     autoAck?: boolean;
     connectTimeoutMs?: number;

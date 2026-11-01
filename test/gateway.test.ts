@@ -391,6 +391,27 @@ describe("BotClient connection", () => {
         expect(String(call[0])).toBe(`${DEFAULT_API_BASE_URL}/bots/gateway`);
     });
 
+    test("uses a custom fetch implementation for gateway discovery", async () => {
+        const fake = createFactory();
+        const urls: string[] = [];
+        const client = new BotClient({
+            token: "secret",
+            socketFactory: fake.factory,
+            fetchImpl: async (input) => {
+                urls.push(String(input));
+                return new Response(JSON.stringify({ url: "https://gateway.example.com" }), {
+                    status: 200,
+                    headers: { "Content-Type": "application/json" },
+                });
+            },
+        });
+
+        await client.connect();
+
+        expect(urls).toEqual([`${DEFAULT_API_BASE_URL}/bots/gateway`]);
+        expect(fake.urls).toEqual(["https://gateway.example.com"]);
+    });
+
     test("resolves the gateway url through a custom resolver", async () => {
         const fake = createFactory();
         const client = new BotClient({

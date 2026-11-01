@@ -1,6 +1,6 @@
 # veiled.js
 
-A small TypeScript library for Veiled's API. It handles webhooks and bot gateway connections. The rest of the client, channels, and API objects will be added later without having to rewrite the webhook side of things.
+A small TypeScript library for Veiled's API. It handles webhooks, bot gateway connections, and the bot REST API without mixing those concerns.
 
 > **Heads up:** veiled.js only runs on Bun. Node and Deno are not supported.
 
@@ -91,6 +91,44 @@ await bot.connect();
 
 A runnable example lives in [`exemple/`](./exemple). Set `VEILED_BOT_TOKEN` in `.env` and run `bun run example:bot`.
 
+## Bot REST API
+
+`BotClient` exposes a `BotREST` instance as `bot.rest`, with `bot.api` as an alias:
+
+```ts
+const me = await bot.rest.getMe();
+const rooms = await bot.rest.getMyRooms();
+const lanes = await bot.rest.getLanes(roomId);
+
+await bot.rest.sendMessage(laneId, {
+    content: "Hello from veiled.js",
+});
+
+await bot.rest.sendContainer(laneId, {
+    title: "Build finished",
+    description: "The deploy is live.",
+    linkButtons: [{ label: "Open site", url: "https://example.com" }],
+});
+
+const messages = await bot.rest.getMessages(laneId, { limit: 10 });
+```
+
+`sendContainerWithFiles()` stages uploads and sends them with a CV2 container. `createContainer()` and `isValidContainerPayload()` are exported for building or validating the raw component payload yourself.
+
+The bot client covers the bot, room, lane, member, role, moderation, message, reaction, pin, thread, invite, scheduled-event, voice, upload, webhook, and interaction routes. Methods accept the same IDs and payload field names as the Veiled API. IDs and emoji values are URL-encoded automatically, and query objects are supported alongside raw query strings.
+
+Failed requests throw `BotAPIError`. Its `status`, `body`, `details`, and `retryAfter` fields make it possible to distinguish rate limits, permission failures, and other API errors.
+
+For an endpoint without a typed wrapper, use the scoped request helper:
+
+```ts
+const data = await bot.rest.request<{ ok: boolean }>("/bots/@me", {
+    method: "GET",
+});
+```
+
+Owner-session endpoints such as application-command management, interaction submissions from browser users, and OAuth are intentionally not part of `BotREST`; they require a Veiled user session rather than a bot token.
+
 ## Builders
 
 - `WebhookMessageBuilder` handles `username`, `avatar_url`, `content`, `embeds`, and `components`.
@@ -98,6 +136,7 @@ A runnable example lives in [`exemple/`](./exemple). Set `VEILED_BOT_TOKEN` in `
 - `ActionRowBuilder` holds up to five buttons.
 - `ButtonBuilder` has `link`, `primary`, `secondary`, `success`, `danger`, and `custom` helpers. `setDisabled()` works on all of them.
 - `MessageBuilder` is the shared base, so channels can reuse it later.
+- `createContainer` builds a Components V2 container with text sections, dividers, footers, accent color, and link buttons.
 
 ## Validation
 
@@ -120,7 +159,7 @@ src/
   builders/    outgoing payload builders
   structures/  parsed API responses
   types/       request, response, and gateway DTOs
-  rest/        webhook and gateway HTTP transport
+  rest/        bot, webhook, and gateway HTTP transport
   gateway/     Socket.IO connection and gateway primitives
   client/      public clients
 ```
@@ -129,7 +168,7 @@ The split is intentional: builders never parse responses, structures never build
 
 ## Status
 
-Webhooks and bot gateway connections are done. Gateway event payloads are still raw, and REST methods beyond fetching the gateway URL are not implemented yet. Messages, users, embeds, and the other response structures are already separated, so adding the rest of the bot API later is mostly new files instead of a rewrite.
+Webhooks, bot gateway connections, and the bot REST API are implemented. Gateway event payloads are still raw, and typed response structures for rooms, lanes, roles, threads, and scheduled events currently preserve the API's raw shape. Webhook response structures remain fully parsed.
 
 ## License
 

@@ -1,4 +1,5 @@
 import { GatewayAPIError, GatewayConnectionError } from "../gateway/errors";
+import type { FetchLike } from "../types/rest";
 import { normalizeBotToken } from "../util/botToken";
 import { isValidUrl } from "../util/isValidUrl";
 
@@ -7,19 +8,22 @@ export const DEFAULT_API_BASE_URL = "https://veiled.lol/api/v1";
 export interface GatewayRESTOptions {
     baseUrl?: string;
     token: string;
+    fetchImpl?: FetchLike;
 }
 
 export class GatewayREST {
     private readonly baseUrl: string;
     private readonly authorization: string;
+    private readonly fetchImpl: FetchLike;
 
     public constructor(options: GatewayRESTOptions) {
         this.baseUrl = (options.baseUrl ?? DEFAULT_API_BASE_URL).replace(/\/+$/, "");
         this.authorization = normalizeBotToken(options.token);
+        this.fetchImpl = options.fetchImpl ?? globalThis.fetch;
     }
 
     public async getGatewayUrl(): Promise<string> {
-        const response = await fetch(`${this.baseUrl}/bots/gateway`, {
+        const response = await this.fetchImpl(`${this.baseUrl}/bots/gateway`, {
             method: "GET",
             headers: {
                 Authorization: this.authorization,
