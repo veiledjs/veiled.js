@@ -1,4 +1,25 @@
+export { BotClient, BotClient as Bot } from "./client/BotClient";
 export { WebhookClient, WebhookClient as Webhook } from "./client/WebhookClient";
+
+export { GatewayConnection } from "./gateway/GatewayConnection";
+export { GatewayEventContext } from "./gateway/GatewayEventContext";
+export { GatewayEvents, GatewaySystemEvents, isGatewayEventName } from "./gateway/GatewayEvents";
+export {
+    BOT_GATEWAY_INTENTS,
+    DEFAULT_GATEWAY_INTENTS,
+    GatewayIntents,
+    hasIntent,
+} from "./gateway/GatewayIntents";
+export { GatewayState } from "./gateway/GatewayState";
+export {
+    GatewayAPIError,
+    GatewayAckTimeoutError,
+    GatewayConnectionError,
+    GatewayError,
+    GatewayNotConnectedError,
+} from "./gateway/errors";
+
+export { GatewayREST, DEFAULT_API_BASE_URL } from "./rest/GatewayREST";
 export { WebhookREST } from "./rest/WebhookREST";
 export { WebhookAPIError } from "./rest/WebhookAPIError";
 
@@ -45,3 +66,25 @@ export type { RawAttachment } from "./types/response/attachment";
 export type { RawReaction } from "./types/response/reaction";
 export type { RawSticker } from "./types/response/sticker";
 export type { RawWebhookInfo } from "./types/response/webhook";
+
+export type {
+    BotClientEventMap,
+    BotClientListener,
+} from "./client/BotClient";
+export type { GatewayConnectionEventMap } from "./gateway/GatewayConnection";
+export type { GatewayEventName } from "./gateway/GatewayEvents";
+export type { GatewayAckHandler } from "./gateway/GatewayEventContext";
+export type {
+    GatewayCloseInfo,
+    GatewayAnyListener,
+    RawGatewayEvent,
+    RawGatewayReplayGap,
+} from "./types/gateway/event";
+export type { GatewayAckCallback, GatewayAckResult } from "./types/gateway/ack";
+export type {
+    BotClientOptions,
+    GatewayConnectionOptions,
+    ReconnectOptions,
+    Shard,
+} from "./types/gateway/options";
+export type { ManagerLike, SocketFactory, SocketLike } from "./types/gateway/socket";

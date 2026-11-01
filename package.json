@@ -10,9 +10,10 @@
     "src"
   ],
   "scripts": {
-    "test": "bun test ./test/test.ts",
+    "test": "bun test ./test/test.ts ./test/gateway.test.ts",
     "test:integration": "bun test ./test/integration.test.ts",
-    "typecheck": "bunx tsc --noEmit"
+    "typecheck": "bunx tsc --noEmit",
+    "example:bot": "bun run exemple/index.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"
