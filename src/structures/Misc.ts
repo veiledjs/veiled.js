@@ -171,7 +171,7 @@ export class Interaction extends Structure<Record<string, unknown>> {
 
     private constructor(raw: Record<string, unknown>) {
         super(raw);
-        const data = asRecord(raw.data);
+        const data = hasRecord(raw.data) ? asRecord(raw.data) : raw;
         this.id = asString(raw.interaction_id ?? raw.id);
         this.type = typeof raw.type === "string" || typeof raw.type === "number" ? raw.type : null;
         this.data = data;

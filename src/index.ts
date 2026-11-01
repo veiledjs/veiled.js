@@ -169,6 +169,7 @@ export type {
 } from "./client/BotClient";
 export type { GatewayConnectionEventMap } from "./gateway/GatewayConnection";
 export type { GatewayEventName } from "./gateway/GatewayEvents";
+export { parseGatewayEvent } from "./gateway/GatewayEventStructures";
 export type {
     GatewayEventStructure,
     GatewayEventStructureMap,

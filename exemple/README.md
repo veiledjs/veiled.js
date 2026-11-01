@@ -26,52 +26,47 @@ bun run exemple/index.ts
 
 ## Commands
 
-Lane-scoped commands use the lane they were sent in. Room-scoped commands use the current room, `ROOM_ID`, or the first joined room.
+Lane-scoped commands use the lane they were sent in. Room-scoped commands use the current room, `ROOM_ID`, or the supplied ID. Command output is rendered with embeds; panels use Components V2 containers.
 
-| Command | What it tests |
+`!help`, `!help <command>`, `!methods`, `!call <method> [jsonArgs]`, `!tour [laneId]`
+
+| Area | Commands |
 | --- | --- |
-| `!help` | Command list. |
-| `!me` | `getMe` |
-| `!rooms` | `getMyRooms` |
-| `!gateway` | `getGateway` |
-| `!room [roomId]` | `getRoom` |
-| `!lanes [roomId]` | `getLanes` |
-| `!lane [laneId]` | `getLane`, `getLaneCapabilities` |
-| `!members [roomId]` | `getMembers` |
-| `!roles [roomId]` | `getRoomRoles` |
-| `!messages [laneId]` | `getMessages` |
-| `!send <text>` | `sendMessage` |
-| `!reply <text>` | `sendMessage` with `replyToId` |
-| `!edit [messageId] <text>` | `editMessage`; edits the command message when no ID is given. |
-| `!delete [messageId]` | `deleteMessage`; deletes the command message when no ID is given. |
-| `!react [messageId] <emoji>` | `addReaction`; reacts to the command message when no ID is given. |
-| `!pin [messageId]`, `!unpin [messageId]` | Pin/unpin. |
-| `!typing` | `sendTyping` |
-| `!poll <question> \| <option> \| <option>` | `createPoll` |
-| `!thread <name>` | `createThread` |
-| `!threads [laneId]` | `getLaneThreads` |
-| `!invites [roomId]`, `!invite [roomId]` | List/create invites. |
-| `!events [roomId]` | `getScheduledEvents` |
-| `!webhooks [laneId]` | `getLaneWebhooks` |
-| `!voice [laneId]` | Voice states, ICE servers, and TURN credentials. |
-| `!card [text]` | `sendContainer` with sections, divider, footer, accent, and link button. |
-| `!files [text]` | `stageUpload` through `sendContainerWithFiles`. |
-| `!tour [laneId]` | Read-only sweep across room, lane, member, role, message, thread, invite, event, webhook, and voice routes. |
-| `!methods` | List every public `BotREST` method. |
-| `!call <method> [jsonArgs]` | Call any public `BotREST` method. |
+| Core | `!ping`, `!status`, `!uptime`, `!me`, `!gateway`, `!info [roomId]`, `!card [text]`, `!sendEmbed <title> \| <description>` |
+| Rooms | `!rooms`, `!room [roomId]`, `!lanes [roomId]`, `!lane [laneId]`, `!members [roomId]`, `!roles [roomId]` |
+| Members and roles | `!roleMembers <roleId> [roomId]`, `!memberRoles <userId> [roomId]`, `!permissions <userId> [roomId]`, `!createRole`, `!updateRole`, `!deleteRole`, `!assignRole`, `!unassignRole`, `!roleColor` |
+| Messages | `!messages [laneId]`, `!send`, `!echo`, `!reply`, `!edit`, `!delete`, `!react`, `!unreact`, `!reactions`, `!pin`, `!unpin`, `!pins`, `!typing`, `!poll`, `!whoami` |
+| Moderation | `!kick`, `!ban`, `!unban`, `!timeout`, `!untimeout` |
+| Threads | `!thread`, `!threads`, `!joinedThreads`, `!threadInfo`, `!threadMessages`, `!threadMembers`, `!threadSend`, `!threadUpdate`, `!threadArchive`, `!threadUnarchive`, `!threadLock`, `!threadUnlock`, `!threadPin`, `!threadPublish`, `!threadDelete`, `!threadAddMember`, `!threadRemoveMember` |
+| Invites | `!invites`, `!invite`, `!inviteInfo`, `!inviteUpdate`, `!inviteDelete` |
+| Events | `!events`, `!event`, `!eventCreate`, `!eventUpdate`, `!eventDelete`, `!rsvp`, `!unrsvp` |
+| Webhooks | `!webhooks`, `!webhook`, `!webhookCreate`, `!webhookUpdate`, `!webhookReset`, `!webhookDelete` |
+| Voice | `!voice [laneId]`, `!voiceJoin`, `!voiceLeave`, `!ice`, `!turn` |
+| Uploads | `!files [text]`, `!upload <filename> [text]`, `!jsonFile [text]` |
 
 Examples:
 
 ```text
+!help
+!help threadSend
 !call getMe
-!call getMyRooms
 !call sendMessage ["laneId",{"content":"hello"}]
 !call createThread ["laneId",{"name":"example"}]
 !call updateRole ["roleId",{"name":"test"}]
-!call deleteMessage ["messageId"]
 ```
 
 `!call` can invoke destructive moderation methods. Use it in a test room with a token you control.
+
+## Layout
+
+```txt
+exemple/
+  index.ts           gateway events, command dispatch, interaction replies
+  config.ts          environment and intent configuration
+  client.ts          BotClient instance, method registry, runtime state
+  commands/          command modules grouped by API area
+  lib/               embeds, containers, replies, argument parsing, formatting
+```
 
 ## Environment
 

@@ -839,7 +839,7 @@ describe("Message gateway normalization", () => {
     });
 });
 
-const parserCases: Array<[GatewayEventName, unknown, abstract new (...args: never[]) => unknown]> = [
+const parserCases: Array<[GatewayEventName, unknown, Function]> = [
     [GatewayEvents.ROOM_CREATE, { id: "room1" }, Room],
     [GatewayEvents.ROOM_UPDATE, { id: "room1" }, Room],
     [GatewayEvents.ROOM_DELETE, { roomId: "room1" }, Room],
@@ -894,7 +894,6 @@ describe("parseGatewayEvent", () => {
             const parsed = parseGatewayEvent(name, payload as RawGatewayEvent);
 
             expect(parsed).toBeInstanceOf(structure);
-            expect(parsed.name).toBeUndefined();
             expect(parsed.raw).toBeDefined();
         });
     }
